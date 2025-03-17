@@ -8,71 +8,91 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Users table
+// Admin table (single admin for registering students)
+model Admin {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String   // Should be hashed in practice
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Users table (Students)
 model User {
-  id         String      @id @default(uuid())
-  telegramId String      @unique
-  photoUrl   String?
-  PictureUrl String?
-  name       String
-  studentId  String?     @unique
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  Belonging  Belonging[]
-  QRCode     QRCode[]
+  id           String       @id @default(uuid())
+  telegramId   String?      @unique // Optional if linked to Telegram
+  studentId    String       @unique // Smart ID for scanning and entry
+  name         String
+  photoUrl     String?      // Student's photo (optional)
+  isBlacklisted Boolean     @default(false) // Blacklist status
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  belongings   Belonging[]  // Student's belongings
+  qrCodes      QRCode[]     // QR codes for entry (optional)
+  entries      EntryLog[]   // Entry/exit logs
+  warnings     Warning[]    // Curfew violation warnings
 }
 
 // Belongings table
 model Belonging {
   id              String   @id @default(uuid())
-  telegramId      String   @unique
   itemName        String
-  itemPhoto       String
+  itemPhoto       String?  // Photo of the belonging (optional)
   itemDescription String
-  serialNumber    String?  @unique
+  serialNumber    String?  @unique // Optional unique identifier
   student         User     @relation(fields: [studentId], references: [id])
   studentId       String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
 
-model WarningList {
-  id         String   @id @default(uuid())
-  telegramId String   @unique
-  name       String
-  day        String
-  studentId  String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+// Entry/Exit Logs (for tracking compound access)
+model EntryLog {
+  id        String   @id @default(uuid())
+  student   User     @relation(fields: [studentId], references: [id])
+  studentId String
+  entryTime DateTime @default(now())
+  exitTime  DateTime?
+  createdAt DateTime @default(now())
 }
 
-// Curfew Rules table
+// Curfew Rules table (varying by day)
 model CurfewRule {
-  id        String    @id @default(uuid())
-  startTime DateTime?
-  endTime   DateTime?
-  length    String?
-  days      String?
-  createdAt DateTime  @default(now())
+  id        String   @id @default(uuid())
+  day       String   // e.g., "Monday", "Tuesday", etc.
+  startTime DateTime // Curfew start time
+  endTime   DateTime // Curfew end time
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-// QR Codes (optional if QR generation tracking is needed)
+// Warnings table (for curfew violations)
+model Warning {
+  id          String   @id @default(uuid())
+  student     User     @relation(fields: [studentId], references: [id])
+  studentId   String
+  violation   String   // Description of violation (e.g., "Late entry")
+  occurredAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// QR Codes (optional, for smart ID entry tracking)
 model QRCode {
   id         String   @id @default(uuid())
-  telegramId String   @unique
   student    User     @relation(fields: [studentId], references: [id])
   studentId  String
-  qrData     String?
+  qrData     String   // QR code data (e.g., encoded studentId)
   createdAt  DateTime @default(now())
 }
 
-// Notifications table (for Telegram alerts)
+// Notifications table (for Telegram alerts or system notifications)
 model Notification {
   id          String   @id @default(uuid())
   message     String
-  telegramId  String   @unique
-  type        String
-  createdAt   DateTime @default(now())
-  recipientId String
+  telegramId  String?  @unique // Optional, if sent via Telegram
+  type        String   // e.g., "Curfew Violation", "Blacklist Alert"
+  recipientId String   // Could be studentId or adminId
   sentAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
 }

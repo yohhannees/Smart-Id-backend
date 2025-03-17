@@ -1,32 +1,78 @@
-import { PrismaClient, User } from "@prisma/client";
-
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
-export const getAllUsers = async (): Promise<User[]> => {
-  return prisma.user.findMany();
-};
+export class UserService {
+  // Create a new user
+  static async createUser(userData: any) {
+    return await prisma.user.create({ data: userData });
+  }
 
-export const getUserByTelegramId = async (
-  telegramId: string
-): Promise<User | null> => {
-  return prisma.user.findUnique({ where: { telegramId } });
-};
+  // Get a user by ID
+  static async getUserById(userId: string) {
+    return await prisma.user.findUnique({ where: { id: userId } });
+  }
 
-export const upsertUser = async (data: Omit<User, "id">): Promise<User> => {
-  return prisma.user.upsert({
-    where: { telegramId: data.telegramId },
-    update: data,
-    create: data,
-  });
-};
+  // Update a user
+  static async updateUser(userId: string, userData: any) {
+    return await prisma.user.update({
+      where: { id: userId },
+      data: userData,
+    });
+  }
 
-export const updateUser = async (
-  telegramId: string,
-  data: Partial<User>
-): Promise<User> => {
-  return prisma.user.update({ where: { telegramId }, data });
-};
+  // Delete a user
+  static async deleteUser(userId: string) {
+    return await prisma.user.delete({ where: { id: userId } });
+  }
 
-export const deleteUser = async (telegramId: string): Promise<User> => {
-  return prisma.user.delete({ where: { telegramId } });
-};
+  // Add a belonging
+  static async addBelonging(userId: string, belongingData: any) {
+    return await prisma.belonging.create({
+      data: { ...belongingData, studentId: userId },
+    });
+  }
+
+  // Get belongings
+  static async getBelongings(userId: string) {
+    return await prisma.belonging.findMany({ where: { studentId: userId } });
+  }
+
+  // Delete a belonging
+  static async deleteBelonging(belongingId: string) {
+    return await prisma.belonging.delete({ where: { id: belongingId } });
+  }
+
+  // Add an entry log
+  static async addEntryLog(userId: string, entryLogData: any) {
+    return await prisma.entryLog.create({
+      data: { ...entryLogData, studentId: userId },
+    });
+  }
+
+  // Get entry logs
+  static async getEntryLogs(userId: string) {
+    return await prisma.entryLog.findMany({ where: { studentId: userId } });
+  }
+
+  // Add a warning
+  static async addWarning(userId: string, warningData: any) {
+    return await prisma.warning.create({
+      data: { ...warningData, studentId: userId },
+    });
+  }
+
+  // Get warnings
+  static async getWarnings(userId: string) {
+    return await prisma.warning.findMany({ where: { studentId: userId } });
+  }
+
+  // Send a notification
+  static async sendNotification(notificationData: any) {
+    return await prisma.notification.create({ data: notificationData });
+  }
+
+  // Get a notification by ID
+  static async getNotificationById(notificationId: string) {
+    return await prisma.notification.findUnique({ where: { id: notificationId } });
+  }
+}
